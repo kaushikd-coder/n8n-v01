@@ -1,14 +1,22 @@
+import "server-only"
 import { PrismaClient } from "@/generated/prisma/client"
+import { PrismaPg } from "@prisma/adapter-pg"
+import { Pool } from "pg"
 
-
-const globalForPrisma = global as unknown as {
-    prisma : PrismaClient;
+const globalForPrisma = globalThis as unknown as {
+  prisma: PrismaClient
 }
 
-const prisma = globalForPrisma.prisma || new PrismaClient();
-
-if (process.env.NODE_ENV !== 'production'){
-    globalForPrisma.prisma = prisma;
+if (!process.env.DATABASE_URL) {
+  throw new Error("DATABASE_URL is not defined. Add it to your .env")
 }
 
-export default prisma;
+const pool = new Pool({ connectionString: process.env.DATABASE_URL })
+const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL as string })
+const prisma = globalForPrisma.prisma || new PrismaClient({ adapter })
+
+if (process.env.NODE_ENV !== "production") {
+  globalForPrisma.prisma = prisma
+}
+
+export default prisma
